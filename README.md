@@ -1,15 +1,17 @@
 # Azure Data Factory to Microsoft Fabric — Transition Information Pack
 
 **Audience:** Data & Analytics teams currently using Azure Data Factory (ADF)
-**Purpose:** Provide a vendor-neutral, generic overview of the current Azure Data Factory (ADF) platform, how it compares with Data Factory in Microsoft Fabric (FDF), and the practical pros, cons, and transition considerations.
+**Purpose:** Provide a vendor-neutral, generic overview of the current Azure Data Factory (ADF) platform, how it compares with Data Factory in Microsoft Fabric (FDF), and the practical pros, cons, and migration challenges.
 
-> This pack is written for a typical ADF customer. It describes common architectural patterns and decision points rather than any single organisation's environment. Use it as a starting framework and adapt it to your own source systems, network constraints, and operating model.
+> This pack is written for a typical ADF customer. It describes common architectural patterns and decision points rather than any single organisation's environment. Use it as a starting framework and tailor to your estate.
 
 ---
 
 ## 1. Current State — Azure Data Factory Today
 
 Azure Data Factory is widely used as the **data movement and orchestration layer** of a modern data platform, sitting between source systems and the downstream processing/analytics estate.
+
+Microsoft lifecycle note: Microsoft publishes a **3-year subset policy** for eligible products under the Modern Lifecycle Policy. For details and applicability, refer to: https://learn.microsoft.com/en-us/lifecycle/policies/3-year-subset
 
 ### 1.1 How ADF is commonly used
 
@@ -82,13 +84,13 @@ The remainder of this document is intended to support that decision.
 - **ADF**: in steady-state — fully supported, but the majority of net-new investment is going into Fabric.
 - **FDF**: actively evolving — expect ongoing improvements in connectors, triggers, gateway throughput, governance, and Copilot capabilities.
 - A **"Mount existing ADF in Fabric"** capability already exists, allowing Fabric to surface and orchestrate existing ADF factories — explicitly designed to support a hybrid migration.
-- Microsoft provides a **PowerShell migration module** (`Microsoft.FabricPipelineUpgrade`) that converts ADF pipeline JSON into Fabric pipeline definitions, accelerating bulk migration of straight-copy patterns.
+- Microsoft provides a **PowerShell migration module** (`Microsoft.FabricPipelineUpgrade`) that converts ADF pipeline JSON into Fabric pipeline definitions, accelerating bulk migration of straightforward patterns.
 
 ---
 
 ## 3. Practical Pros, Cons, and Challenges
 
-This section applies to the common pattern of **ADF used primarily for ingestion/orchestration, a separate processing/semantic layer (e.g. Spark/Databricks + Delta Lake), and a significant share of sources being on-premises or bespoke**.
+This section applies to the common pattern of **ADF used primarily for ingestion/orchestration, a separate processing/semantic layer (e.g. Spark/Databricks + Delta Lake), and a significant share of on-premises bespoke sources**.
 
 ### 3.1 Pros of moving ingestion to FDF
 
@@ -105,7 +107,7 @@ This section applies to the common pattern of **ADF used primarily for ingestion
 - **Networking maturity**: ADF's Managed VNet + private endpoint story is currently richer.
 - **Trigger gaps**: tumbling-window and certain event triggers used in mature ADF frameworks may need redesign.
 - **Metadata-driven frameworks**: any "config-table-drives-N-pipelines" patterns will need refactoring because FDF removes the Datasets abstraction.
-- **Processing-engine integration**: invoking external engines (e.g. Databricks) is functional but less first-class than in ADF — Microsoft is naturally promoting Fabric Spark/Lakehouse, and existing external orchestration patterns may need adjustment.
+- **Processing-engine integration**: invoking external engines (e.g. Databricks) is functional but less first-class than in ADF — Microsoft is naturally promoting Fabric Spark/Lakehouse, and external compute integration may need extra adaptation.
 - **Capacity contention**: a busy Spark or BI workload on the same Fabric capacity can throttle pipelines, unlike ADF's PaaS isolation.
 - **Cost shape**: ADF's per-use model can be cheaper for **bursty, small-volume** ingestion workloads than a reserved Fabric capacity.
 
@@ -141,12 +143,12 @@ For the common pattern — **ADF is "just the mover", a separate engine is the "
 
 1. **Stabilise & assess** — inventory existing ADF pipelines, IRs, triggers, and dependencies; identify any features that currently lack FDF parity.
 2. **Stand up a Fabric landing zone** — a non-production Fabric capacity, a workspace with appropriate governance, and an OPDG cluster connected to a representative bespoke source.
-3. **Run a focused PoC (4–6 weeks)** — migrate one representative ingestion flow end-to-end (on-prem source → cloud storage/Delta → processing job → monitoring/alerting). This will surface any gateway, networking, performance, and operational gaps.
+3. **Run a focused PoC (4–6 weeks)** — migrate one representative ingestion flow end-to-end (on-prem source → cloud storage/Delta → processing job → monitoring/alerting). This will surface throughput, security, and operations realities.
 4. **Adopt the hybrid bridge** — use the **Mount ADF in Fabric** capability so new ingestion can be authored in FDF while existing ADF pipelines continue to run unchanged.
 5. **Migrate opportunistically** — start with simple Copy-heavy pipelines using the PowerShell upgrade tool; redesign complex frameworks as part of the move.
 6. **Define cutover triggers** — e.g., OPDG meets throughput SLAs, Managed VNet/private endpoint parity lands, or a separate business case emerges to adopt OneLake / Power BI on Fabric.
 
-> **Bottom line:** FDF is a strategic fit and the clear long-term direction, but it is **not yet an obvious tactical win** for an ingestion-only ADF workload feeding a separate processing layer. A hybrid approach is the safest default for most customers today.
+> **Bottom line:** FDF is a strategic fit and the clear long-term direction, but it is **not yet an obvious tactical win** for an ingestion-only ADF workload feeding a separate processing layer. For most organisations in this position, a staged hybrid transition minimises risk while preserving future options.
 
 ---
 
